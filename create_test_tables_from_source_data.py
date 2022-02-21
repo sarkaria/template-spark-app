@@ -9,20 +9,18 @@ from process_data import get_or_create_spark
 spark = get_or_create_spark('Create-Test-Data-Local-Spark-App')
 
 test_data_df = (spark.read
-    .option('header', True)
-    .option('inferschema', True)
-    .option("timestampFormat", "dd-LLL-yy")
-    .format('csv')
-    .load(os.path.join(os.getcwd(), 'storage', 'CSV', 'test_data.csv'))
+    .option("multiline",True)
+    .format('json')
+    .load(os.path.join(os.getcwd(), 'storage', 'JSON', 'students.json'))
 )
 
 test_data_df.printSchema()
 
 (test_data_df.write
-    .format('delta')
+    .format('parquet')
     .mode('overwrite')
     .option('header', True)
-    .save(os.path.join(os.getcwd(), 'storage', 'input', 'history'))
+    .save(os.path.join(os.getcwd(), 'storage', 'input', 'students'))
 )
 
 

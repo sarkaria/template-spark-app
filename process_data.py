@@ -6,8 +6,10 @@
 import argparse
 import logging
 import os
+from typing import List
 import pyspark
 
+from delta import configure_spark_with_delta_pip
 from delta.tables import DeltaTable
 from dotenv import load_dotenv
 from pyspark.sql.dataframe import DataFrame
@@ -22,7 +24,7 @@ logging.basicConfig(level=logging.WARNING)
 
 # Construct argument parser
 ap = argparse.ArgumentParser()
-ap.add_argument('-f', '--filename', required=True, help='the name of the filename to use as source of input data')
+ap.add_argument('-t', '--tablename', required=True, help='the name of the input data table')
 
 '''
     Databricks configuration required:
@@ -43,33 +45,75 @@ def process_data_wrapper (spark):
         gets any input data frames from storage and calls the main code that processes
         the data.
     '''
+    log.info(f"+++ process_data_wrapper running in spark {spark.version}")
+    args = vars(ap.parse_args())
+    p_tablename : str = args['tablename']
+    log.info(f'+++ p_tablename={p_tablename}')
+
+    source_table_path = get_path_to_table(spark, p_tablename, 'input')
+    source_df = spark.read.format('parquet').load(source_table_path)
+    processed_df = process_data(spark, source_df)
+    target_path = get_path_to_table(spark, 'students', 'output')
+    merge_into_target(spark, processed_df, target_path, ['ID'])
 
 
-def process_data (spark, source_dataframe) -> DataFrame:
+def process_data (spark, source_df: DataFrame) -> DataFrame:
     '''
-        This is method does all the rea work. The source dataframe is processed
-        and the content is merged into the target delta table. Upon success, a resulting
-        dataframe is returned, otherwise an exception may be thrown. 
+        This method does all the real work. The source dataframe is processed and
+        the resulting dataframe returned.
+ 
     '''
-    df: DataFrame = None
+    df = source_df.withColumn('student', explode('Full')).drop('Full')
+    df = df.select(df.student.ID.alias('ID'),
+                   df.student.LastName.alias('LastName'), 
+                   df.student.FirstName.alias('FirstName'),
+                   df.student.age.alias('age'),
+                   df.student.Major.alias('Major'),
+                   df.student.StudentStatus.alias('Status'))
     return df
 
 
-def merge_into_target (incoming_df: DataFrame, target_delta_table: str):
+def merge_into_target (spark, incoming_df: DataFrame, target_path: str, merge_column_list: List[str]):
     '''
         This method takes an incoming Dataframe and merges it into the target table.
-        An exception is thrown if the merge fails.
+        An exception is thrown if the merge fails. If the target table does not
+        exist it is created.
     '''
+    if not DeltaTable.isDeltaTable(spark, target_path):
+        log.warning(f'+++ Creating new table @ {target_path}')
+        (
+            incoming_df.write
+            .format('delta')
+            .mode('overwrite')
+            .save(target_path)
+        )
+    else:
+    # Build merge predicate - must be comma separated and we assume there is at least one
+        try:
+            predicate_string = f'target.{merge_column_list[0]} = updates.{merge_column_list[0]}'
+            for column in merge_column_list[1:]:
+                predicate_string += " AND " + f'target.{column} = updates.{column}'
+
+            log.warning(f'+++ merging with predicate: {predicate_string}')
+
+            target_delta_table = DeltaTable.forPath(spark, target_path)
+            target_delta_table.alias('target') \
+                .merge(incoming_df.alias('updates'), predicate_string) \
+                .whenMatchedUpdateAll() \
+                .whenNotMatchedInsertAll() \
+                .execute() 
+        except IndexError:
+            log.error(f'+++ Exception merging')
 
 
-def get_path_to_table(spark, name_of_table, subfolder='input', level='gold') -> str:
+def get_path_to_table(spark, name_of_table, level) -> str:
     '''
         Given the name of a table, this method will return a path
         to a local storage folder when running in spark local mode.
         Otherwise a path to blob storage will be returned.
     '''
     if spark.conf.get('spark.master') == 'local':
-        return os.path.join(os.getcwd(), 'storage', f'{subfolder}', f'{name_of_table}')
+        return os.path.join(os.getcwd(), 'storage', f'{level}', f'{name_of_table}')
     else:
         return f'{BASE_STORAGE_URL}/{level}/{name_of_table}'
 
@@ -90,7 +134,7 @@ def get_or_create_spark(spark_app_name: str):
         .config("spark.sql.catalog.spark_catalog", "org.apache.spark.sql.delta.catalog.DeltaCatalog") \
         .config("spark.local.dir", "./tmp/spark-temp")
 
-    spark = pyspark.configure_spark_with_delta_pip(builder).getOrCreate()
+    spark = configure_spark_with_delta_pip(builder).getOrCreate()
 
     return spark
 
