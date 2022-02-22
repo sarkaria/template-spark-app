@@ -1,9 +1,9 @@
-import unittest
-import pyspark
-from datetime import datetime
-from delta import configure_spark_with_delta_pip
+import os
+import unittest 
+
+from create_test_tables_from_source_data import create_tables
 from dotenv import load_dotenv
-from process_data import get_or_create_spark
+from process_data import get_or_create_spark, process_data, get_path_to_table, merge_into_target
 from pyspark.sql.types import *
 
 '''
@@ -18,18 +18,34 @@ class Testing(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.spark = get_or_create_spark('Local-Unittest-Spark-App')
+        create_tables(cls.spark)
 
     @classmethod
     def tearDownClass(cls):
         cls.spark.stop()
 
     def test_process_data(self):
-        # setup data
+        source_df = self.spark.read.format('parquet').load('storage/input/students')
+        new_df = process_data(self.spark, source_df)
+        actual_count = new_df.count()
+        expected_count = 28
+        self.assertEqual(expected_count, actual_count, '--* DataFrame did not have expected number of row')
 
-        join_df = process_data(events_df, telem_df)
-        actual_count = join_df.count()
-        expected_count = 2
-        self.assertEqual(expected_count, actual_count)
+    def test_get_path(self):
+        path = get_path_to_table(self.spark, 'students', 'input')
+        expected_path = os.path.join(os.getcwd(), 'storage/input/students')
+        self.assertEqual(expected_path, path, '--* Path incorrect')
+
+    def test_merge(self):
+        source_df = self.spark.read.format('parquet').load('storage/input/updates')
+        target_path = os.path.join(os.getcwd(), 'storage/output/students')
+        merge_into_target(self.spark, source_df, target_path, ['ID'])
+        target_df = self.spark.read.format('delta').load(target_path)
+        actual_count = target_df.count()
+        expected_count = 30
+        self.assertEqual(expected_count, actual_count, '--* Unexpected number of rows')
+
+        # Also check presence of new IDs and changed IDs
 
 
       
