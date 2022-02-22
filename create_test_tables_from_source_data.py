@@ -10,8 +10,8 @@ def setup_spark_and_create_tables():
     '''
         This method creates a spark context and then creats the data tables.
     '''
-    spark = get_or_create_spark(spark, 'Create-Test-Data-Local-Spark-App')
-    create_tables()
+    spark = get_or_create_spark('Create-Test-Data-Local-Spark-App')
+    create_tables(spark)
     spark.stop()
 
 
