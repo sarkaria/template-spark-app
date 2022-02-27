@@ -129,7 +129,8 @@ dmypy.json
 .pyre/
 
 # storage
-storage
+storage/input
+storage/output
 
 # tmp
 tmp

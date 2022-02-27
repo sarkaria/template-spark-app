@@ -71,12 +71,7 @@ class Testing(unittest.TestCase):
         actual_student_status = updated_students_df.filter(col('ID') == 1).select('Status').collect()[0][0]
         expected_status = 'PostGrad'
         self.assertEqual(expected_status, actual_student_status, '--* Unexpected student status after update operation')
-
         
-
-
-      
-
 
 
 if __name__ == '__main__':

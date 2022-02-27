@@ -1,0 +1,64 @@
+﻿{
+    "Full": [
+        {
+            "ID": "1",
+            "LastName": "DOE01",
+            "FirstName": "JANE01",
+            "City": "Los Angeles",
+            "State": "California",
+            "Gender": "Female",
+            "StudentStatus": "PostGrad",
+            "Major": "Economics",
+            "Country": "US",
+            "Age": "30",
+            "SAT": "2263",
+            "Grade": "67",
+            "Height": "61"
+        },
+        {
+            "ID": "2",
+            "LastName": "DOE02",
+            "FirstName": "JANE02",
+            "City": "Sedona",
+            "State": "Arizona",
+            "Gender": "Female",
+            "StudentStatus": "Graduate",
+            "Major": "Physics",
+            "Country": "US",
+            "Age": "19",
+            "SAT": "2006",
+            "Grade": "63",
+            "Height": "64"
+        },
+        {
+            "ID": "29",
+            "LastName": "DOE14",
+            "FirstName": "JOE14",
+            "City": "Buenos Aires",
+            "State": "Argentina",
+            "Gender": "Male",
+            "StudentStatus": "Graduate",
+            "Major": "Politics",
+            "Country": "Argentina",
+            "Age": "30",
+            "SAT": "2279",
+            "Grade": "85",
+            "Height": "72"
+        },
+        {
+            "ID": "30",
+            "LastName": "DOE15",
+            "FirstName": "JOE15",
+            "City": "Acme",
+            "State": "Louisiana",
+            "Gender": "Male",
+            "StudentStatus": "Undergraduate",
+            "Major": "Econ",
+            "Country": "US",
+            "Age": "19",
+            "SAT": "1907",
+            "Grade": "79",
+            "Height": "74"
+        }
+    ]
+}
