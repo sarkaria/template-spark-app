@@ -148,3 +148,6 @@ if __name__ == "__main__":
 
     # For now, get from `environments` which is a config section of the databricks compute
     spark.conf.set(f'fs.azure.account.key.{STORAGE_ACCOUNT_NAME}.dfs.core.windows.net', STORAGE_ACCOUNT_KEY)
+    
+    # Now process data!
+    process_data_wrapper(spark)
